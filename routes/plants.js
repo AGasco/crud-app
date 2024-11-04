@@ -2,6 +2,7 @@ const express = require('express');
 const Joi = require('joi');
 const User = require('../models/user');
 const Plant = require('../models/plant');
+const auth = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -15,17 +16,14 @@ const plantSchema = Joi.object({
   imageUrl: Joi.string().uri().required()
 });
 
+router.use(auth);
+
 // @route   GET /api/plants
 // @desc    Get all plants (optionally filter by userId)
 router.get('/', async (req, res) => {
   try {
-    const { userId } = req.query;
-    let filter = {};
-    if (userId) {
-      filter.userId = userId;
-    }
-
-    const plants = await Plant.find(filter).sort({ createdAt: -1 });
+    const userId = req.user.id;
+    const plants = await Plant.find({ userId }).sort({ createdAt: -1 });
     res.json(plants);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -48,15 +46,8 @@ router.post('/', async (req, res) => {
     req.body;
 
   try {
-    const user = await User.findById(userId);
-
-    if (!user)
-      return res
-        .status(400)
-        .json({ message: 'Invalid userId. User does not exist.' });
-
     const plant = new Plant({
-      userId,
+      userId: req.user.id,
       name,
       species,
       positionX,
@@ -94,7 +85,7 @@ router.put('/:id', getPlant, async (req, res) => {
 
 // @route   DELETE /api/plants/:id
 // @desc    Delete a plant
-router.delete('./:id', getPlant, async (req, res) => {
+router.delete('/:id', getPlant, async (req, res) => {
   try {
     await res.plant.remove();
     res.json({ message: 'Plant deleted successfully' });
@@ -110,6 +101,10 @@ async function getPlant(req, res, next) {
     plant = await Plant.findById(req.params.id);
     if (!plant) {
       return res.status(404).json({ message: 'Plant not found.' });
+    }
+
+    if (plant.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied' });
     }
   } catch (err) {
     return res.status(500).json({ message: err.message });
