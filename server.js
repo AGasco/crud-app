@@ -4,6 +4,9 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const morgan = require('morgan');
 const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
 
 dotenv.config();
 
@@ -20,6 +23,8 @@ app.use(cors()); // TODO Allowing all origins for dev purposes. Remove for produ
 app.use(express.json());
 app.use(morgan('dev')); // For logging HTTP requests, aiding in debugging
 app.use(helmet()); // For setting HTTP headers to enhance security
+app.use(mongoSanitize()); // Data sanitization against NoSQL query injection
+app.use(xss()); // Data sanitization against XSS
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -44,6 +49,25 @@ const authRouter = require('./routes/auth');
 app.use('/api/plants', plantsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/auth', authRouter);
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 mins
+  max: 50,
+  message: {
+    message: 'Too many requests from this IP, please try again later.'
+  }
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 mins
+  max: 25,
+  message: {
+    message: 'Too many login attempts from this IP, please try again later.'
+  }
+});
+
+app.use(generalLimiter);
+app.use('/api/auth', authLimiter);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
