@@ -19,12 +19,28 @@ const app = express();
 
 //   app.use(cors(corsOptions));
 
+const helmetOptions = {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"]
+    }
+  }
+};
+
 app.use(cors()); // TODO Allowing all origins for dev purposes. Remove for production
 app.use(express.json());
 app.use(morgan('dev')); // For logging HTTP requests, aiding in debugging
-app.use(helmet()); // For setting HTTP headers to enhance security
 app.use(mongoSanitize()); // Data sanitization against NoSQL query injection
 app.use(xss()); // Data sanitization against XSS
+
+app.use(helmet(helmetOptions)); // For setting HTTP headers to enhance security
+app.use(
+  helmet.hsts({
+    maxAge: 31536000, // 1y
+    includeSubDomains: true,
+    preload: true
+  })
+);
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -87,6 +103,16 @@ app.use((err, req, res, next) => {
 app.use((req, res, next) => {
   res.status(404).json({ message: 'Endpoint not found.' });
 });
+
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.secure) {
+      next();
+    } else {
+      res.redirect(`https://${req.headers.host}${req.url}`);
+    }
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
