@@ -26,7 +26,7 @@ router.post('/register', async (req, res) => {
   const { error } = registerSchema.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
-  const { username, email, password } = req.body;
+  const { username, email, password, role } = req.body;
 
   try {
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
@@ -35,12 +35,18 @@ router.post('/register', async (req, res) => {
         .status(400)
         .json({ message: 'Username or email already exists.' });
 
-    const user = new User({ username, email, password });
+    let userRole = 'user';
+    if (role && role === 'admin') {
+      userRole = 'user';
+    }
+
+    const user = new User({ username, email, password, role: userRole });
     await user.save();
 
     const payload = {
       user: {
-        id: user.id
+        id: user.id,
+        role: user.role
       }
     };
 
@@ -78,7 +84,8 @@ router.post('/login', async (req, res) => {
 
     const payload = {
       user: {
-        id: user.id
+        id: user.id,
+        role: user.role
       }
     };
 
