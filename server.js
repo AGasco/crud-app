@@ -12,60 +12,7 @@ dotenv.config();
 
 const app = express();
 
-// const corsOptions = {
-//     origin: '', // TODO Replace with your frontend's URL
-//     optionsSuccessStatus: 200,
-//   };
-
-//   app.use(cors(corsOptions));
-
-const helmetOptions = {
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"]
-    }
-  }
-};
-
-app.use(cors()); // TODO Allowing all origins for dev purposes. Remove for production
-app.use(express.json());
-app.use(morgan('dev')); // For logging HTTP requests, aiding in debugging
-app.use(mongoSanitize()); // Data sanitization against NoSQL query injection
-app.use(xss()); // Data sanitization against XSS
-
-app.use(helmet(helmetOptions)); // For setting HTTP headers to enhance security
-app.use(
-  helmet.hsts({
-    maxAge: 31536000, // 1y
-    includeSubDomains: true,
-    preload: true
-  })
-);
-
-const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI;
-
-mongoose
-  .connect(MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch((err) => {
-    console.error('MongoDB connection error:', err);
-  });
-
-app.get('/', (req, res) => {
-  res.send('Virtual Garden API is running');
-});
-
-const plantsRouter = require('./routes/plants');
-const usersRouter = require('./routes/users');
-const authRouter = require('./routes/auth');
-
-app.use('/api/plants', plantsRouter);
-app.use('/api/users', usersRouter);
-app.use('/api/auth', authRouter);
-
+// Rate Limiting
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 mins
   max: 50,
@@ -85,11 +32,92 @@ const authLimiter = rateLimit({
 app.use(generalLimiter);
 app.use('/api/auth', authLimiter);
 
+// CORS configuration
+// const corsOptions = {
+//     origin: process.env.FRONTEND_URL, // TODO Replace with your frontend's URL
+//     optionsSuccessStatus: 200,
+//   };
+
+//   app.use(cors(corsOptions));
+
+app.use(cors()); // TODO Allowing all origins for dev purposes. Remove for production
+
+// Middleware Setup
+app.use(express.json());
+app.use(morgan('dev')); // For logging HTTP requests, aiding in debugging
+app.use(
+  // For setting HTTP headers to enhance security
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"]
+      }
+    },
+    hsts: {
+      maxAge: 31536000, // 1y
+      includeSubDomains: true,
+      preload: true
+    }
+  })
+);
+
+// Data Sanitization against NoSQL Injection
+app.use(mongoSanitize());
+
+// Data sanitization against XSS
+app.use(xss());
+
+// HTTPS Enforcement (in production)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+  app.use((req, res, next) => {
+    if (req.secure) {
+      next();
+    } else {
+      res.redirect(`https://${req.headers.host}${req.url}`);
+    }
+  });
+}
+
+const PORT = process.env.PORT || 5000;
+const MONGODB_URI = process.env.MONGODB_URI;
+
+// Connect to MongoDB
+mongoose
+  .connect(MONGODB_URI)
+  .then(() => {
+    console.log('Connected to MongoDB');
+  })
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+  });
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.send('Virtual Garden API is running');
+});
+
+// Import routes
+const plantsRouter = require('./routes/plants');
+const usersRouter = require('./routes/users');
+const authRouter = require('./routes/auth');
+
+// Use routes
+app.use('/api/plants', plantsRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/auth', authRouter);
+
+// 404 handler
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Endpoint not found.' });
+});
+
+// Global Error Handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
 
   const response = {
-    message: 'An unexpected error occurred'
+    message: 'An unexpected error occurred.'
   };
 
   if (process.env.NODE_ENV === 'development') {
@@ -99,20 +127,6 @@ app.use((err, req, res, next) => {
 
   res.status(500).json(response);
 });
-
-app.use((req, res, next) => {
-  res.status(404).json({ message: 'Endpoint not found.' });
-});
-
-if (process.env.NODE_ENV === 'production') {
-  app.use((req, res, next) => {
-    if (req.secure) {
-      next();
-    } else {
-      res.redirect(`https://${req.headers.host}${req.url}`);
-    }
-  });
-}
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
