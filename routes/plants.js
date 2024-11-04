@@ -118,3 +118,5 @@ async function getPlant(req, res, next) {
   res.plant = plant;
   next();
 }
+
+module.exports = router;
