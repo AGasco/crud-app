@@ -1,6 +1,6 @@
 const express = require('express');
 const Joi = require('joi');
-const User = require('../models/user');
+const User = require('../models/User');
 const auth = require('../middleware/auth');
 const authorizeRoles = require('../middleware/role');
 const getUser = require('../middleware/getUser');

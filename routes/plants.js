@@ -1,7 +1,7 @@
 const express = require('express');
 const Joi = require('joi');
-const User = require('../models/user');
-const Plant = require('../models/plant');
+const User = require('../models/User');
+const Plant = require('../models/Plant');
 const auth = require('../middleware/auth');
 const getPlant = require('../middleware/getPlant');
 

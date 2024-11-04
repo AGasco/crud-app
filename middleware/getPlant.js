@@ -1,4 +1,4 @@
-const Plant = require('../models/plant');
+const Plant = require('../models/Plant');
 
 /**
  * @desc Middleware to get plant by ID and ensure proper authorization

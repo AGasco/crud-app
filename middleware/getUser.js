@@ -1,4 +1,4 @@
-const User = require('../models/user');
+const User = require('../models/User');
 
 /**
  * @desc Middleware to get user by ID and ensure proper authorization
