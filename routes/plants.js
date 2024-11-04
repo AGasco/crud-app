@@ -3,6 +3,7 @@ const Joi = require('joi');
 const User = require('../models/user');
 const Plant = require('../models/plant');
 const auth = require('../middleware/auth');
+const getPlant = require('../middleware/getPlant');
 
 const router = express.Router();
 
@@ -18,32 +19,47 @@ const plantSchema = Joi.object({
 
 router.use(auth);
 
-// @route   GET /api/plants
-// @desc    Get all plants (optionally filter by userId)
+/**
+ * @route   GET /api/plants
+ * @desc    Get all plants (admins get all, users get their own)
+ * @access  Private
+ */
 router.get('/', async (req, res) => {
   try {
-    const userId = req.user.id;
-    const plants = await Plant.find({ userId }).sort({ createdAt: -1 });
+    let plants;
+    if (req.user.role === 'admin') {
+      plants = await Plant.find().sort({ createdAt: -1 });
+    } else {
+      plants = await Plant.find({ userId: req.user.id }).sort({
+        createdAt: -1
+      });
+    }
+
     res.json(plants);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// @route   GET /api/plants/:id
-// @desc    Get a single plant by ID
+/**
+ * @route   GET /api/plants/:id
+ * @desc    Get a single plant by ID
+ * @access  Private - Users can access their own plants, admins can access any
+ */
 router.get('/:id', getPlant, (req, res) => {
   res.json(res.plant);
 });
 
-// @route   POST /api/plants
-// @desc    Create a new plant (planting)
+/**
+ * @route   POST /api/plants
+ * @desc    Create a new plant (planting)
+ * @access  Private
+ */
 router.post('/', async (req, res) => {
   const { error } = plantSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
 
-  const { userId, name, species, positionX, positionY, status, imageUrl } =
-    req.body;
+  const { name, species, positionX, positionY, status, imageUrl } = req.body;
 
   try {
     const plant = new Plant({
@@ -63,19 +79,25 @@ router.post('/', async (req, res) => {
   }
 });
 
-// @route   PUT /api/plants/:id
-// @desc    Update a plant (e.g., moving or editing details)
+/**
+ * @route   PUT /api/plants/:id
+ * @desc    Update a plant (e.g., moving or editing details)
+ * @access  Private - Users can update their own plants, admins can update any
+ */
 router.put('/:id', getPlant, async (req, res) => {
+  const { error } = plantSchema.validate(req.body, { presence: 'optional' });
+  if (error) return res.status(400).json({ message: error.details[0].message });
+
   const { name, species, positionX, positionY, status, imageUrl } = req.body;
 
-  if (name !== undefined) res.plant.name = name;
-  if (species !== undefined) res.plant.species = species;
-  if (positionX !== undefined) res.plant.positionX = positionX;
-  if (positionY !== undefined) res.plant.positionY = positionY;
-  if (status !== undefined) res.plant.status = status;
-  if (imageUrl !== undefined) res.plant.imageUrl = imageUrl;
-
   try {
+    if (name !== undefined) res.plant.name = name;
+    if (species !== undefined) res.plant.species = species;
+    if (positionX !== undefined) res.plant.positionX = positionX;
+    if (positionY !== undefined) res.plant.positionY = positionY;
+    if (status !== undefined) res.plant.status = status;
+    if (imageUrl !== undefined) res.plant.imageUrl = imageUrl;
+
     const updatedPlant = await res.plant.save();
     res.json(updatedPlant);
   } catch (err) {
@@ -83,8 +105,11 @@ router.put('/:id', getPlant, async (req, res) => {
   }
 });
 
-// @route   DELETE /api/plants/:id
-// @desc    Delete a plant
+/**
+ * @route   DELETE /api/plants/:id
+ * @desc    Delete a plant
+ * @access  Private - Users can delete their own plants, admins can delete any
+ */
 router.delete('/:id', getPlant, async (req, res) => {
   try {
     await res.plant.remove();
@@ -93,25 +118,5 @@ router.delete('/:id', getPlant, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
-async function getPlant(req, res, next) {
-  let plant;
-
-  try {
-    plant = await Plant.findById(req.params.id);
-    if (!plant) {
-      return res.status(404).json({ message: 'Plant not found.' });
-    }
-
-    if (plant.userId.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-  } catch (err) {
-    return res.status(500).json({ message: err.message });
-  }
-
-  res.plant = plant;
-  next();
-}
 
 module.exports = router;
