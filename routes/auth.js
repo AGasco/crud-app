@@ -24,16 +24,14 @@ const loginSchema = Joi.object({
 // @access  Public
 router.post('/register', async (req, res) => {
   const { error } = registerSchema.validate(req.body);
-  if (error) return res.status(400).json({ error: error.details[0].message });
+  if (error) return res.status(400).json({ error: 'Invalid input data' });
 
   const { username, email, password, role } = req.body;
 
   try {
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser)
-      return res
-        .status(400)
-        .json({ message: 'Username or email already exists.' });
+      return res.status(400).json({ message: 'Registration failed.' });
 
     let userRole = 'user';
     if (role && role === 'admin') {
@@ -61,7 +59,7 @@ router.post('/register', async (req, res) => {
     );
   } catch (err) {
     console.error('Registration Error:', err);
-    res.status(500).json({ message: `Server error: ${err.message}` });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -70,7 +68,7 @@ router.post('/register', async (req, res) => {
 // @access  Public
 router.post('/login', async (req, res) => {
   const { error } = loginSchema.validate(req.body);
-  if (error) return res.status(400).json({ error: error.details[0].message });
+  if (error) return res.status(400).json({ error: 'Invalid credentials.' });
 
   const { email, password } = req.body;
 
@@ -100,7 +98,7 @@ router.post('/login', async (req, res) => {
     );
   } catch (err) {
     console.error('Login Error', err);
-    res.status(500).json({ message: `Server error: ${err.message}` });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
