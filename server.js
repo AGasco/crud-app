@@ -26,8 +26,13 @@ mongoose
   });
 
 app.get('/', (req, res) => {
-  res.send('API is running');
+  res.send('Virtual Garden API is running');
 });
+
+const plantsRouter = require('./routes/plants');
+const usersRouter = require('./routes/users');
+app.use('/api/plants', plantsRouter);
+app.use('/api/users', usersRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
