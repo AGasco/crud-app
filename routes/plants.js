@@ -4,18 +4,12 @@ const User = require('../models/User');
 const Plant = require('../models/Plant');
 const auth = require('../middleware/auth');
 const getPlant = require('../middleware/getPlant');
+const {
+  createPlantSchema,
+  updatePlantSchema
+} = require('../validators/plantValidators');
 
 const router = express.Router();
-
-const plantSchema = Joi.object({
-  userId: Joi.string().required(),
-  name: Joi.string().min(3).required(),
-  species: Joi.string().min(3).required(),
-  positionX: Joi.number().allow(null),
-  positionY: Joi.number().allow(null),
-  status: Joi.string().valid('garden', 'vault').default('vault'),
-  imageUrl: Joi.string().uri().required()
-});
 
 router.use(auth);
 
@@ -56,7 +50,7 @@ router.get('/:id', getPlant, (req, res) => {
  * @access  Private
  */
 router.post('/', async (req, res) => {
-  const { error } = plantSchema.validate(req.body);
+  const { error } = createPlantSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
 
   const { name, species, imageUrl } = req.body;
@@ -85,7 +79,7 @@ router.post('/', async (req, res) => {
  * @access  Private - Users can update their own plants, admins can update any
  */
 router.put('/:id', getPlant, async (req, res) => {
-  const { error } = plantSchema.validate(req.body, { presence: 'optional' });
+  const { error } = updatePlantSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
 
   const { name, species, positionX, positionY, status, imageUrl } = req.body;
