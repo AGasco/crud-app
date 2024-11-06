@@ -40,6 +40,7 @@ app.use('/api/auth', authLimiter);
 
 //   app.use(cors(corsOptions));
 
+app.set('trust proxy', 1); // TODO remove after development
 app.use(cors()); // TODO Allowing all origins for dev purposes. Remove for production
 
 // Middleware Setup
