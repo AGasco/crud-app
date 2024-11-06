@@ -95,7 +95,7 @@ mongoose
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.send('Virtual Garden API is running');
+  res.status(200).send('Virtual Garden API is running');
 });
 
 // Import routes
@@ -129,6 +129,22 @@ app.use((err, req, res, next) => {
   res.status(500).json(response);
 });
 
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected. Attempting to reconnect...');
+  connectDB();
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(
+    `Server is running on port ${PORT} in ${process.env.NODE_ENV} mode`
+  );
 });
