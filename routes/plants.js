@@ -106,7 +106,7 @@ router.put('/:id', getPlant, async (req, res) => {
  */
 router.delete('/:id', getPlant, async (req, res) => {
   try {
-    await res.plant.remove();
+    await res.plant.deleteOne();
     res.json({ message: 'Plant deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
