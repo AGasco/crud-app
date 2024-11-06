@@ -59,16 +59,16 @@ router.post('/', async (req, res) => {
   const { error } = plantSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
 
-  const { name, species, positionX, positionY, status, imageUrl } = req.body;
+  const { name, species, imageUrl } = req.body;
 
   try {
     const plant = new Plant({
       userId: req.user.id,
       name,
       species,
-      positionX,
-      positionY,
-      status,
+      positionX: -1,
+      positionY: -1,
+      status: 'vault',
       imageUrl
     });
 
