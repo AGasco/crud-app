@@ -111,7 +111,7 @@ const healthRouter = require('./routes/health');
 app.use('/api/plants', plantsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/auth', authRouter);
-app.use('/api/health', healthRouter);
+app.use('/health', healthRouter);
 
 // 404 handler
 app.use((req, res, next) => {
