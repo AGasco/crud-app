@@ -83,15 +83,18 @@ if (process.env.NODE_ENV === 'production') {
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// Connect to MongoDB
-mongoose
-  .connect(MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch((err) => {
-    console.error('MongoDB connection error:', err);
-  });
+function connectDB() {
+  mongoose
+    .connect(MONGODB_URI)
+    .then(() => {
+      console.log('Connected to MongoDB');
+    })
+    .catch((err) => {
+      console.error('MongoDB connection error:', err);
+    });
+}
+
+connectDB();
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -102,11 +105,13 @@ app.get('/', (req, res) => {
 const plantsRouter = require('./routes/plants');
 const usersRouter = require('./routes/users');
 const authRouter = require('./routes/auth');
+const healthRouter = require('./routes/health');
 
 // Use routes
 app.use('/api/plants', plantsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/health', healthRouter);
 
 // 404 handler
 app.use((req, res, next) => {
